@@ -60,7 +60,7 @@ Resources:
       Handler: index.helloWorldHandler
       Runtime: nodejs12.x
       Events:
-        LookupData:
+        HelloWorld:
           Type: Api
           Properties:
             Path: /hello
