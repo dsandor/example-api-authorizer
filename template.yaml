@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  hello-world-api
+
+  API example of using a request authorizer with API Gateway.
+
+Globals:
+  Function:
+    Timeout: 120
+    MemorySize: 384
+  Api:
+    Cors:
+      AllowMethods: "'GET,OPTIONS,HEAD,POST,PUT,DELETE,CONNECT,PATCH'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept,Origin,Referer,User-Agent'"
+      AllowOrigin: "'*'"
+
+Resources:
+  HelloWorldApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: hello-world-api
+      StageName: v1
+      MethodSettings:
+        - LoggingLevel: INFO
+          ResourcePath: '/*' # allows logging on any resource
+          HttpMethod: '*' # allows logging on all methods
+      Cors:
+        AllowMethods: "'GET,OPTIONS,HEAD,POST,PUT,DELETE,CONNECT,PATCH'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept,Origin,Referer,User-Agent'"
+        AllowOrigin: "'*'"
+
+      Auth:
+        AddDefaultAuthorizerToCorsPreflight: false
+        DefaultAuthorizer: RequestAuth
+        Authorizers:
+          RequestAuth:
+            FunctionPayloadType: REQUEST
+            FunctionArn: !GetAtt RequestAuthorizerFunction.Arn
+            Identity:
+              Headers:
+                - Authorization
+              ReauthorizeEvery: 0
+ 
+  RequestAuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+      CodeUri: ./
+      Handler: index.authorizerHandler
+      Runtime: nodejs12.x
+
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+      CodeUri: ./
+      Handler: index.helloWorldHandler
+      Runtime: nodejs12.x
+      Events:
+        LookupData:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+            RestApiId: !Ref HelloWorldApi
+            Auth:
+              AddDefaultAuthorizerToCorsPreflight: false
+              DefaultAuthorizer: RequestAuth
+              Authorizers:
+                RequestAuth:
+                  FunctionPayloadType: REQUEST
+                  FunctionArn: !GetAtt RequestAuthorizerFunction.Arn
+                  Identity:
+                    Headers:
+                      - Authorization
+                    ReauthorizeEvery: 0              
+
+
